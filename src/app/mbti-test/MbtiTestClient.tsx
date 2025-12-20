@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { startMbtiTest, checkAuthStatus } from '@/lib/api';
+import { startMbtiTest, checkAuthStatus, generateAIQuestion, ChatMessageDTO } from '@/lib/api';
 
 interface Message {
-  role: 'USER' | 'ASSISTANT';
+  role: 'user' | 'assistant';
   content: string;
 }
 
@@ -15,10 +15,17 @@ export default function MbtiTestClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [sessionId, setSessionId] = useState<string>('');
-  const [currentQuestion, setCurrentQuestion] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [userId, setUserId] = useState<string>('');
+  const [turn, setTurn] = useState(1);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // 메시지가 추가될 때마다 자동으로 스크롤
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -46,8 +53,8 @@ export default function MbtiTestClient() {
     try {
       const response = await startMbtiTest(userId);
       setSessionId(response.session_id);
-      setCurrentQuestion(response.first_question);
-      setMessages([{ role: 'ASSISTANT', content: response.first_question }]);
+      setMessages([{ role: 'assistant', content: response.first_question }]);
+      setTurn(1);
       setIsStarted(true);
     } catch (err: any) {
       setError(err.message || 'MBTI 테스트 시작 중 오류가 발생했습니다.');
@@ -57,23 +64,52 @@ export default function MbtiTestClient() {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || isCompleted) return;
 
     const userAnswer = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'USER', content: userAnswer }]);
+    const newMessages: Message[] = [...messages, { role: 'user', content: userAnswer }];
+    setMessages(newMessages);
     setIsLoading(true);
     setError('');
 
-    // TODO: 백엔드에 답변 제출 API가 구현되면 여기에 연동
-    // 현재는 답변만 표시하고 다음 질문을 기다립니다
-    setTimeout(() => {
-      setMessages(prev => [
-        ...prev,
-        { role: 'ASSISTANT', content: '답변 감사합니다! (다음 질문 API 연동 예정)' }
-      ]);
+    try {
+      // 대화 기록을 API 형식으로 변환
+      const history: ChatMessageDTO[] = newMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
+      // AI 질문 생성 요청
+      const response = await generateAIQuestion(sessionId, {
+        turn: turn,
+        history: history,
+        question_mode: 'normal',
+      });
+
+      // 질문이 있으면 첫 번째 질문 표시
+      if (response.questions && response.questions.length > 0) {
+        const nextQuestion = response.questions[0].text;
+        setMessages(prev => [...prev, { role: 'assistant', content: nextQuestion }]);
+
+        // 다음 턴으로
+        const nextTurn = turn + 1;
+        setTurn(nextTurn);
+
+        // 5턴 완료 체크
+        if (nextTurn > 5) {
+          setIsCompleted(true);
+          setMessages(prev => [
+            ...prev,
+            { role: 'assistant', content: '테스트가 완료되었습니다! 결과를 분석 중입니다...' }
+          ]);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'AI 질문 생성 중 오류가 발생했습니다.');
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   if (!isStarted) {
@@ -121,7 +157,9 @@ export default function MbtiTestClient() {
         {/* 헤더 */}
         <div className="bg-gradient-to-r from-purple-400 to-pink-400 text-white p-4">
           <h1 className="font-bold">MBTI 테스트</h1>
-          <p className="text-sm text-white/80">질문에 솔직하게 답변해주세요</p>
+          <p className="text-sm text-white/80">
+            {isCompleted ? '테스트 완료!' : `진행 중: ${Math.min(turn, 5)}/5턴`}
+          </p>
         </div>
 
         {/* 메시지 영역 */}
@@ -129,11 +167,11 @@ export default function MbtiTestClient() {
           {messages.map((msg, idx) => (
             <div
               key={idx}
-              className={`flex ${msg.role === 'USER' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-[80%] px-4 py-3 rounded-2xl ${
-                  msg.role === 'USER'
+                  msg.role === 'user'
                     ? 'bg-purple-400 text-white rounded-br-sm'
                     : 'bg-gray-100 text-gray-700 rounded-bl-sm'
                 }`}
@@ -153,6 +191,7 @@ export default function MbtiTestClient() {
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* 에러 메시지 */}
@@ -169,14 +208,14 @@ export default function MbtiTestClient() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSend()}
-              placeholder="답변을 입력해주세요..."
-              disabled={isLoading}
+              onKeyDown={(e) => e.key === 'Enter' && !isLoading && !isCompleted && handleSend()}
+              placeholder={isCompleted ? '테스트가 완료되었습니다' : '답변을 입력해주세요...'}
+              disabled={isLoading || isCompleted}
               className="flex-1 px-4 py-3 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               onClick={handleSend}
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || isCompleted || !input.trim()}
               className="px-6 py-3 bg-purple-400 text-white rounded-full font-medium hover:bg-purple-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? '전송 중...' : '전송'}

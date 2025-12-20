@@ -258,3 +258,37 @@ export async function startMbtiTest(userId: string): Promise<StartMbtiTestRespon
   });
 }
 
+/**
+ * MBTI 테스트 AI 질문 생성
+ */
+export interface ChatMessageDTO {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface GenerateAIQuestionRequest {
+  turn: number; // 1~5
+  history: ChatMessageDTO[];
+  question_mode: 'normal' | 'surprise';
+}
+
+export interface AIQuestionDTO {
+  text: string;
+  target_dimensions: string[];
+}
+
+export interface GenerateAIQuestionResponse {
+  turn: number;
+  questions: AIQuestionDTO[];
+}
+
+export async function generateAIQuestion(
+  sessionId: string,
+  request: GenerateAIQuestionRequest
+): Promise<GenerateAIQuestionResponse> {
+  return apiFetch<GenerateAIQuestionResponse>(`/mbti-test/${sessionId}/ai-question`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
+
