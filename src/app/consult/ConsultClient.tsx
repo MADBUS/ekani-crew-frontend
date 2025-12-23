@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { startConsult, sendConsultMessage, Analysis } from '@/lib/api';
 
 export default function ConsultClient() {
@@ -64,7 +65,7 @@ export default function ConsultClient() {
 
   if (!isStarted) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto space-y-4">
         <div className="bg-white rounded-3xl p-8 shadow-sm text-center">
           <div className="text-6xl mb-6">💭</div>
           <h1 className="text-2xl font-bold text-pink-500 mb-4">MBTI 상담 시작하기</h1>
@@ -85,6 +86,25 @@ export default function ConsultClient() {
           >
             {isLoading ? '시작 중...' : '상담 시작하기'}
           </button>
+        </div>
+
+        {/* MBTI 검사 유도 */}
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-5 border border-indigo-100">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-2xl">🧠</span>
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-indigo-700">정확한 MBTI를 알고 싶다면?</p>
+              <p className="text-sm text-gray-500">AI와 24개의 질문으로 나만의 MBTI를 정확하게 분석해드려요</p>
+            </div>
+            <Link
+              href="/mbti-test"
+              className="px-5 py-2.5 bg-indigo-500 text-white text-sm font-medium rounded-full hover:bg-indigo-600 transition whitespace-nowrap"
+            >
+              MBTI 검사
+            </Link>
+          </div>
         </div>
       </div>
     );

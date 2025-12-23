@@ -21,6 +21,24 @@ export default function Home() {
 
       {/* 서비스 카드 */}
       <section className="grid md:grid-cols-3 gap-6">
+        {/* MBTI 검사 - 메인 카드 */}
+        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-3xl p-8 shadow-sm hover:shadow-md transition border-2 border-indigo-200 relative overflow-hidden">
+          <div className="absolute top-3 right-3 px-2 py-1 bg-indigo-500 text-white text-xs font-bold rounded-full">
+            NEW
+          </div>
+          <div className="text-4xl mb-4">🧠</div>
+          <h2 className="text-xl font-bold text-indigo-600 mb-2">MBTI 검사</h2>
+          <p className="text-gray-600 mb-2">
+            AI와의 자연스러운 대화로 나의 MBTI를 정확하게 알아보세요.
+          </p>
+          <div className="text-xs text-indigo-600 bg-indigo-100 rounded-lg p-2 mb-4">
+            <span className="font-semibold">다른 검사와 다른 점:</span> 단순 선택형이 아닌, AI가 맥락을 파악해 24개의 맞춤 질문을 생성합니다
+          </div>
+          <Link href="/mbti-test" className="text-indigo-500 font-medium hover:underline">
+            무료 검사하기 →
+          </Link>
+        </div>
+
         <div className="bg-white rounded-3xl p-8 shadow-sm hover:shadow-md transition">
           <div className="text-4xl mb-4">💬</div>
           <h2 className="text-xl font-bold text-pink-500 mb-2">MBTI 상담</h2>
@@ -42,18 +60,6 @@ export default function Home() {
           </p>
           <Link href="/convert" className="text-purple-400 font-medium hover:underline">
             변환하기 →
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-3xl p-8 shadow-sm hover:shadow-md transition">
-          <div className="text-4xl mb-4">🧠</div>
-          <h2 className="text-xl font-bold text-indigo-500 mb-2">MBTI 테스트</h2>
-          <p className="text-gray-500 mb-4">
-            AI와의 대화로 나의 MBTI를 알아보세요.
-            자연스러운 질문으로 정확한 결과를 제공합니다.
-          </p>
-          <Link href="/mbti-test" className="text-indigo-400 font-medium hover:underline">
-            테스트하기 →
           </Link>
         </div>
       </section>

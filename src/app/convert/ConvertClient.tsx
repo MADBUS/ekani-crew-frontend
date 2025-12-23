@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { convertMessage, ToneMessage } from '@/lib/api';
 
 export default function ConvertClient() {
@@ -73,6 +74,18 @@ export default function ConvertClient() {
               ))}
             </select>
           </div>
+        </div>
+
+        {/* MBTI 검사 유도 */}
+        <div className="flex items-center gap-3 p-3 bg-indigo-50 rounded-xl text-sm">
+          <span className="text-lg">🧠</span>
+          <span className="text-indigo-700">MBTI를 모르시나요?</span>
+          <Link
+            href="/mbti-test"
+            className="ml-auto px-3 py-1.5 bg-indigo-500 text-white text-xs font-medium rounded-full hover:bg-indigo-600 transition"
+          >
+            AI 검사하기
+          </Link>
         </div>
 
         <div>

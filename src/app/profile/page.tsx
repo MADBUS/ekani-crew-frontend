@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { updateProfile, type Gender } from '@/lib/api';
 
@@ -86,6 +87,23 @@ export default function ProfilePage() {
                 <p className="text-xl font-bold text-pink-500">{mbti}</p>
               </div>
             )}
+
+            {/* MBTI 검사 유도 */}
+            <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🧠</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-indigo-700">내 MBTI를 잘 모르겠다면?</p>
+                  <p className="text-xs text-gray-500">AI와의 대화로 정확한 MBTI를 알아보세요</p>
+                </div>
+                <Link
+                  href="/mbti-test"
+                  className="px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-full hover:bg-indigo-600 transition whitespace-nowrap"
+                >
+                  AI 검사하기
+                </Link>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">

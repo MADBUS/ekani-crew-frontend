@@ -154,11 +154,11 @@ export default function MbtiTestClient() {
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-3xl p-8 shadow-sm text-center">
           <div className="text-6xl mb-6">🧠</div>
-          <h1 className="text-2xl font-bold text-purple-500 mb-4">MBTI 테스트 시작하기</h1>
+          <h1 className="text-2xl font-bold text-purple-500 mb-4">AI MBTI 검사</h1>
           <p className="text-gray-500 mb-4">
-            AI와의 대화를 통해 당신의 MBTI를 알아보세요.
+            AI와의 자연스러운 대화를 통해 당신의 MBTI를 알아보세요.
             <br />
-            자연스러운 질문에 솔직하게 답변해주시면 됩니다!
+            단순 선택형이 아닌, 맞춤형 질문으로 더 정확한 결과를 제공합니다!
           </p>
           <div className="bg-purple-50 rounded-2xl p-4 mb-8">
             <p className="text-purple-700 text-sm">
@@ -188,7 +188,7 @@ export default function MbtiTestClient() {
             disabled={isLoading || isCheckingAuth || !userId}
             className="cursor-pointer px-8 py-4 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-full font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading || isCheckingAuth ? '로딩 중...' : '테스트 시작하기'}
+            {isLoading || isCheckingAuth ? '로딩 중...' : '검사 시작하기'}
           </button>
         </div>
       </div>
@@ -201,7 +201,7 @@ export default function MbtiTestClient() {
         {/* 헤더 */}
         <div className="bg-gradient-to-r from-purple-400 to-pink-400 text-white p-4">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="font-bold">MBTI 테스트</h1>
+            <h1 className="font-bold">AI MBTI 검사</h1>
             <span className="text-sm text-white/80">{getPhaseText()}</span>
           </div>
           {/* 진행률 바 */}

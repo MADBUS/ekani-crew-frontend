@@ -43,7 +43,7 @@ export default function Header() {
               href="/mbti-test"
               className="px-4 py-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 text-sm font-medium transition"
             >
-              MBTI테스트
+              MBTI검사
             </Link>
             <Link
               href="/matching"
