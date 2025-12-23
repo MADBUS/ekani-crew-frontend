@@ -292,3 +292,91 @@ export async function generateAIQuestion(
   });
 }
 
+// ============================================
+// 매칭 API
+// ============================================
+
+/**
+ * 매칭 요청
+ */
+export interface MatchRequestData {
+  user_id: string;
+  mbti: string;
+}
+
+export interface MatchRequestResponse {
+  status: 'waiting' | 'already_waiting';
+  message: string;
+  my_mbti: string;
+  wait_count: number;
+}
+
+export async function requestMatch(data: MatchRequestData): Promise<MatchRequestResponse> {
+  return apiFetch<MatchRequestResponse>('/match/request', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 매칭 취소
+ */
+export interface MatchCancelData {
+  user_id: string;
+  mbti: string;
+}
+
+export interface MatchCancelResponse {
+  status: 'cancelled' | 'fail';
+  message: string;
+}
+
+export async function cancelMatch(data: MatchCancelData): Promise<MatchCancelResponse> {
+  return apiFetch<MatchCancelResponse>('/match/cancel', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * 대기열 상태 조회
+ */
+export interface QueueStatusResponse {
+  mbti: string;
+  waiting_count: number;
+}
+
+export async function getQueueStatus(mbti: string): Promise<QueueStatusResponse> {
+  return apiFetch<QueueStatusResponse>(`/match/queue/${mbti}`, {
+    method: 'GET',
+  });
+}
+
+// ============================================
+// 채팅 API
+// ============================================
+
+/**
+ * WebSocket URL 생성
+ */
+export function getChatWebSocketUrl(roomId: string): string {
+  // API_BASE_URL에서 http -> ws로 변경
+  const wsUrl = API_BASE_URL.replace(/^http/, 'ws');
+  return `${wsUrl}/ws/chat/${roomId}`;
+}
+
+/**
+ * 채팅 메시지 타입
+ */
+export interface ChatWebSocketMessage {
+  sender_id: string;
+  content: string;
+}
+
+export interface ChatWebSocketResponse {
+  message_id: string;
+  room_id: string;
+  sender_id: string;
+  content: string;
+}
+

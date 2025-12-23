@@ -45,6 +45,18 @@ export default function Header() {
             >
               MBTI테스트
             </Link>
+            <Link
+              href="/matching"
+              className="px-4 py-2 rounded-full bg-rose-100 text-rose-600 hover:bg-rose-200 text-sm font-medium transition"
+            >
+              매칭
+            </Link>
+            <Link
+              href="/chat"
+              className="px-4 py-2 rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200 text-sm font-medium transition"
+            >
+              채팅
+            </Link>
             {loading ? (
               <div className="px-4 py-2 text-sm text-gray-400">로딩중...</div>
             ) : isLoggedIn ? (
