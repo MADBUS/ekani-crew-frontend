@@ -21,7 +21,9 @@ export function useAuth() {
 
   useEffect(() => {
     // 프로필 정보가 비어 있으면 프로필 페이지로 이동
-    if (profile && (profile.mbti === null || profile.gender === null)) {
+    // 단, 이미 /profile 페이지에 있는 경우는 제외
+    const currentPath = window.location.pathname;
+    if (profile && (profile.mbti === null || profile.gender === null) && currentPath !== '/profile') {
       router.push('/profile');
     }
   }, [profile, router]);
