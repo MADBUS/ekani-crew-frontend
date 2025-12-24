@@ -308,13 +308,21 @@ export async function answerMbtiQuestion(
 export interface MatchRequestData {
   user_id: string;
   mbti: string;
+  level?: number;  // 매칭 범위 레벨 (1: 같은 MBTI, 2: 비슷한, 3: 넓은 범위, 4: 전체)
+}
+
+export interface MatchPartner {
+  user_id: string;
+  mbti: string;
 }
 
 export interface MatchRequestResponse {
-  status: 'waiting' | 'already_waiting';
+  status: 'waiting' | 'already_waiting' | 'matched';
   message: string;
   my_mbti: string;
-  wait_count: number;
+  wait_count?: number;
+  roomId?: string;
+  partner?: MatchPartner;
 }
 
 export async function requestMatch(data: MatchRequestData): Promise<MatchRequestResponse> {
@@ -361,6 +369,61 @@ export async function getQueueStatus(mbti: string): Promise<QueueStatusResponse>
 // ============================================
 // 채팅 API
 // ============================================
+
+/**
+ * 채팅 메시지 응답
+ */
+export interface ChatMessageDto {
+  id: string;
+  room_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+}
+
+/**
+ * 채팅방 미리보기 응답
+ */
+export interface ChatRoomPreview {
+  id: string;
+  user1_id: string;
+  user2_id: string;
+  created_at: string;
+  latest_message: ChatMessageDto | null;
+  unread_count: number;
+}
+
+/**
+ * 내 채팅방 목록 응답
+ */
+export interface MyChatRoomsResponse {
+  rooms: ChatRoomPreview[];
+}
+
+/**
+ * 내 채팅방 목록 조회
+ */
+export async function getMyChatRooms(userId: string): Promise<MyChatRoomsResponse> {
+  return apiFetch<MyChatRoomsResponse>(`/chat/rooms/my?user_id=${userId}`, {
+    method: 'GET',
+  });
+}
+
+/**
+ * 채팅 히스토리 응답
+ */
+export interface ChatHistoryResponse {
+  messages: ChatMessageDto[];
+}
+
+/**
+ * 채팅방 메시지 히스토리 조회
+ */
+export async function getChatHistory(roomId: string): Promise<ChatHistoryResponse> {
+  return apiFetch<ChatHistoryResponse>(`/chat/${roomId}/messages`, {
+    method: 'GET',
+  });
+}
 
 /**
  * WebSocket URL 생성

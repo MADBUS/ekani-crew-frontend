@@ -1,37 +1,42 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { requestMatch, cancelMatch, MatchRequestResponse } from '@/lib/api';
+import {
+  requestMatch,
+  cancelMatch,
+  getMyChatRooms,
+  MatchRequestResponse,
+  ChatRoomPreview,
+} from '@/lib/api';
 
 type MatchingStatus = 'idle' | 'waiting' | 'matched';
 
 interface ChatRoom {
   id: string;
-  partnerMbti: string;
+  partnerId: string;
+  partnerMbti: string | null;
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
 }
 
-// TODO: API 연동 시 실제 데이터로 교체
-const DUMMY_CHAT_ROOMS: ChatRoom[] = [
-  {
-    id: 'room_1',
-    partnerMbti: 'ENFP',
-    lastMessage: '안녕하세요! 반가워요',
-    lastMessageTime: '방금',
-    unreadCount: 2,
-  },
-  {
-    id: 'room_2',
-    partnerMbti: 'INTJ',
-    lastMessage: '오늘 날씨가 좋네요',
-    lastMessageTime: '5분 전',
-    unreadCount: 0,
-  },
-];
+// 시간 포맷팅 헬퍼
+function formatTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHour = Math.floor(diffMs / 3600000);
+  const diffDay = Math.floor(diffMs / 86400000);
+
+  if (diffMin < 1) return '방금';
+  if (diffMin < 60) return `${diffMin}분 전`;
+  if (diffHour < 24) return `${diffHour}시간 전`;
+  if (diffDay < 7) return `${diffDay}일 전`;
+  return date.toLocaleDateString('ko-KR');
+}
 
 export default function ChatListClient() {
   const router = useRouter();
@@ -39,6 +44,7 @@ export default function ChatListClient() {
 
   // Matching state
   const [matchingStatus, setMatchingStatus] = useState<MatchingStatus>('idle');
+  const [matchingMessage, setMatchingMessage] = useState<string>('매칭 중...');
   const [waitCount, setWaitCount] = useState(0);
   const [matchedMbti, setMatchedMbti] = useState<string | null>(null);
   const [matchedRoomId, setMatchedRoomId] = useState<string | null>(null);
@@ -49,6 +55,15 @@ export default function ChatListClient() {
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [isLoadingRooms, setIsLoadingRooms] = useState(true);
 
+  // refs
+  const previousRoomCountRef = useRef<number>(0);
+  const matchingStatusRef = useRef<MatchingStatus>('idle');
+
+  // matchingStatus 변경 시 ref도 업데이트
+  useEffect(() => {
+    matchingStatusRef.current = matchingStatus;
+  }, [matchingStatus]);
+
   // 로그인 체크
   useEffect(() => {
     if (!loading && !isLoggedIn) {
@@ -56,46 +71,113 @@ export default function ChatListClient() {
     }
   }, [loading, isLoggedIn, router]);
 
-  // MBTI 체크
-  useEffect(() => {
-    if (!loading && isLoggedIn && !profile?.mbti) {
-      router.push('/profile');
-    }
-  }, [loading, isLoggedIn, profile, router]);
+  // ChatRoomPreview를 ChatRoom으로 변환
+  const convertToRoom = useCallback((room: ChatRoomPreview, userId: string): ChatRoom => {
+    const partnerId = room.user1_id === userId ? room.user2_id : room.user1_id;
+    return {
+      id: room.id,
+      partnerId,
+      partnerMbti: null, // 백엔드에서 제공 안함 - 추후 연동 필요
+      lastMessage: room.latest_message?.content || '새로운 채팅방입니다',
+      lastMessageTime: room.latest_message
+        ? formatTime(room.latest_message.created_at)
+        : formatTime(room.created_at),
+      unreadCount: room.unread_count,
+    };
+  }, []);
 
   // 채팅방 목록 로드
-  useEffect(() => {
-    if (isLoggedIn) {
-      // TODO: API 연동 시 실제 데이터로 교체
-      setTimeout(() => {
-        setChatRooms(DUMMY_CHAT_ROOMS);
-        setIsLoadingRooms(false);
-      }, 500);
+  const loadChatRooms = useCallback(async () => {
+    const userId = user?.id;
+    if (!userId) return;
+
+    try {
+      const response = await getMyChatRooms(userId);
+      const rooms = response.rooms.map((room) => convertToRoom(room, userId));
+      setChatRooms(rooms);
+      previousRoomCountRef.current = rooms.length;
+    } catch (err) {
+      console.error('채팅방 목록 로드 실패:', err);
+    } finally {
+      setIsLoadingRooms(false);
     }
-  }, [isLoggedIn]);
+  }, [user?.id, convertToRoom]);
+
+  // 초기 채팅방 목록 로드
+  useEffect(() => {
+    if (isLoggedIn && user?.id) {
+      loadChatRooms();
+    }
+  }, [isLoggedIn, user?.id, loadChatRooms]);
+
+  // 매칭 레벨별 시나리오: [레벨, 대기시간(초)]
+  const MATCHING_SCENARIOS = [
+    { level: 1, wait: 3 },  // 1단계: 정확히 같은 MBTI
+    { level: 1, wait: 3 },  // 1단계 한 번 더
+    { level: 2, wait: 5 },  // 2단계: 비슷한 MBTI
+    { level: 3, wait: 5 },  // 3단계: 더 넓은 범위
+    { level: 4, wait: 0 },  // 4단계: 마지막 시도
+  ];
+
+  // 매칭 레벨별 상태 메시지
+  const getMatchingMessage = (level: number): string => {
+    switch (level) {
+      case 1: return '천생연분을 찾는 중...';
+      case 2: return '잘 맞는 상대를 찾는 중...';
+      case 3: return '새로운 인연을 찾는 중...';
+      case 4: return '마지막으로 찾아보는 중...';
+      default: return '매칭 중...';
+    }
+  };
+
+  // sleep 함수
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   const handleStartMatching = async () => {
     if (!user?.id || !profile?.mbti) return;
 
     setIsMatchingLoading(true);
     setMatchingError(null);
+    setMatchingStatus('waiting');
 
     try {
-      const response: MatchRequestResponse = await requestMatch({
-        user_id: user.id,
-        mbti: profile.mbti,
-      });
+      for (const step of MATCHING_SCENARIOS) {
+        // 매칭 취소 확인
+        if (matchingStatusRef.current === 'idle') {
+          return;
+        }
 
-      setMatchingStatus('waiting');
-      setWaitCount(response.wait_count);
+        // UI 업데이트
+        setMatchingMessage(getMatchingMessage(step.level));
 
-      // TODO: WebSocket이나 폴링으로 매칭 결과를 받아야 함
-      // 현재는 5초 후 매칭 성공으로 시뮬레이션
-      setTimeout(() => {
-        setMatchingStatus('matched');
-        setMatchedMbti('ENFP');
-        setMatchedRoomId('room_' + Date.now());
-      }, 5000);
+        // 서버에 매칭 요청 (level 포함)
+        const response: MatchRequestResponse = await requestMatch({
+          user_id: user.id,
+          mbti: profile.mbti,
+          level: step.level,
+        });
+
+        // 대기 인원 업데이트
+        setWaitCount(response.wait_count || 0);
+
+        // 매칭 성공!
+        if (response.status === 'matched') {
+          setMatchingStatus('matched');
+          setMatchedRoomId(response.roomId || null);
+          setMatchedMbti(response.partner?.mbti || '???');
+          loadChatRooms();
+          return;
+        }
+
+        // 다음 단계 전 대기
+        if (step.wait > 0) {
+          await sleep(step.wait * 1000);
+        }
+      }
+
+      // 모든 단계 실패
+      setMatchingError('현재 매칭 가능한 상대가 없습니다. 잠시 후 다시 시도해주세요.');
+      setMatchingStatus('idle');
 
     } catch (err) {
       console.error('매칭 요청 실패:', err);
@@ -184,7 +266,7 @@ export default function ChatListClient() {
                 <div className="absolute inset-0 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
               </div>
               <div className="text-left">
-                <p className="font-medium text-gray-800">매칭 중...</p>
+                <p className="font-medium text-gray-800">{matchingMessage}</p>
                 <p className="text-sm text-gray-500">대기 인원: {waitCount}명</p>
               </div>
             </div>
@@ -252,15 +334,17 @@ export default function ChatListClient() {
                 onClick={() => handleRoomClick(room.id)}
                 className="w-full px-6 py-4 flex items-center gap-4 hover:bg-gray-50 transition text-left"
               >
-                {/* MBTI 아바타 */}
+                {/* 상대방 아바타 */}
                 <div className="w-12 h-12 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
-                  {room.partnerMbti.slice(0, 2)}
+                  {room.partnerMbti ? room.partnerMbti.slice(0, 2) : '??'}
                 </div>
 
                 {/* 채팅 정보 */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-gray-800">{room.partnerMbti}</span>
+                    <span className="font-medium text-gray-800">
+                      {room.partnerMbti || `상대방`}
+                    </span>
                     <span className="text-xs text-gray-400">{room.lastMessageTime}</span>
                   </div>
                   <p className="text-sm text-gray-500 truncate">{room.lastMessage}</p>

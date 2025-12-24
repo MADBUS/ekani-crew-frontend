@@ -44,16 +44,16 @@ export default function MatchingClient() {
         mbti: profile.mbti,
       });
 
-      setStatus('waiting');
-      setWaitCount(response.wait_count);
-
-      // TODO: 실제로는 WebSocket이나 폴링으로 매칭 결과를 받아야 함
-      // 현재는 껍데기이므로 5초 후 매칭 성공으로 시뮬레이션
-      setTimeout(() => {
+      if (response.status === 'matched') {
+        // 즉시 매칭 성공
         setStatus('matched');
-        setMatchedMbti('ENFP'); // 더미 데이터
-        setMatchedRoomId('room_' + Date.now()); // 더미 데이터
-      }, 5000);
+        setMatchedMbti(response.partner?.mbti || '???');
+        setMatchedRoomId(response.roomId || null);
+      } else {
+        // waiting 또는 already_waiting
+        setStatus('waiting');
+        setWaitCount(response.wait_count || 0);
+      }
 
     } catch (err) {
       console.error('매칭 요청 실패:', err);

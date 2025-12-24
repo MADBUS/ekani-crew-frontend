@@ -97,6 +97,7 @@ export default function MbtiTestClient() {
             ...prev,
             {
               role: 'assistant',
+              content: '당신의 MBTI는 INFP입니다!'
             }
           ]);
         }, 2000);
