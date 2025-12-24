@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { getChatWebSocketUrl, ChatWebSocketResponse } from '@/lib/api';
+import { getChatWebSocketUrl, getChatHistory, ChatWebSocketResponse } from '@/lib/api';
 
 interface Message {
   id: string;
@@ -45,6 +45,29 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
       router.push('/login');
     }
   }, [loading, isLoggedIn, router]);
+
+  // 채팅 히스토리 로드
+  useEffect(() => {
+    if (!user?.id || !roomId) return;
+
+    const loadHistory = async () => {
+      try {
+        const history = await getChatHistory(roomId);
+        const loadedMessages: Message[] = history.messages.map((msg) => ({
+          id: msg.id,
+          senderId: msg.sender_id,
+          content: msg.content,
+          isMine: msg.sender_id === user.id,
+          timestamp: new Date(msg.created_at),
+        }));
+        setMessages(loadedMessages);
+      } catch (err) {
+        console.error('채팅 히스토리 로드 실패:', err);
+      }
+    };
+
+    loadHistory();
+  }, [user?.id, roomId]);
 
   // WebSocket 연결
   useEffect(() => {
