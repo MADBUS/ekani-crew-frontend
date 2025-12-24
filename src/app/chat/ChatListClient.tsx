@@ -149,8 +149,8 @@ export default function ChatListClient() {
     try {
       for (const step of MATCHING_SCENARIOS) {
         console.log('[매칭] step:', step.level);
-        // 매칭 취소 확인
-        if (matchingStatusRef.current === 'idle') {
+        // 매칭 취소 확인 (취소 버튼 누르면 idle로 변경됨)
+        if (matchingStatusRef.current !== 'waiting') {
           console.log('[매칭] 취소됨 - 루프 종료');
           return;
         }
