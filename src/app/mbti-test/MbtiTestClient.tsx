@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { startMbtiTest, checkAuthStatus, answerMbtiQuestion, getMbtiResult } from '@/lib/api';
 
@@ -25,11 +25,30 @@ export default function MbtiTestClient() {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [mbtiResult, setMbtiResult] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
 
-  // 메시지가 추가될 때마다 자동으로 스크롤
+  // 스크롤이 바닥에 있는지 체크
+  const isAtBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    const threshold = 100;
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+  }, []);
+
+  // 스크롤 이벤트 핸들러
+  const handleScroll = useCallback(() => {
+    setIsUserScrolling(!isAtBottom());
+  }, [isAtBottom]);
+
+  // 메시지가 추가될 때 자동 스크롤 (사용자가 스크롤 중이 아닐 때만)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+    if (!isUserScrolling) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isLoading, isUserScrolling]);
+
 
   useEffect(() => {
     const checkUser = async () => {
@@ -72,9 +91,13 @@ export default function MbtiTestClient() {
 
     const userAnswer = input.trim();
     setInput('');
+    setIsUserScrolling(false); // 메시지 전송 시 자동 스크롤 활성화
     setMessages(prev => [...prev, { role: 'user', content: userAnswer }]);
     setIsLoading(true);
     setError('');
+
+    // 포커스 유지
+    setTimeout(() => inputRef.current?.focus(), 0);
 
     try {
       // 통합 답변 엔드포인트 호출
@@ -180,7 +203,7 @@ export default function MbtiTestClient() {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
         {/* 헤더 */}
-        <div className="bg-gradient-to-r from-purple-400 to-pink-400 text-white p-4">
+        <div className="bg-gradient-to-r from-purple-400 to-pink-400 text-white p-4 shrink-0">
           <div className="flex items-center justify-between mb-2">
             <h1 className="font-bold">AI MBTI 검사</h1>
             <span className="text-sm text-white/80">{getPhaseText()}</span>
@@ -195,7 +218,11 @@ export default function MbtiTestClient() {
         </div>
 
         {/* 메시지 영역 */}
-        <div className="h-96 overflow-y-auto p-4 space-y-4">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="h-96 overflow-y-auto p-4 space-y-4"
+        >
           {messages.map((msg, idx) => (
             <div
               key={idx}
@@ -255,6 +282,7 @@ export default function MbtiTestClient() {
         <div className="border-t p-4">
           <div className="flex gap-2">
             <input
+              ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { startConsult, sendConsultMessage, Analysis } from '@/lib/api';
 
@@ -15,11 +15,29 @@ export default function ConsultClient() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
 
-  // 메시지가 추가될 때마다 자동으로 스크롤
+  // 스크롤이 바닥에 있는지 체크
+  const isAtBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    const threshold = 100;
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+  }, []);
+
+  // 스크롤 이벤트 핸들러
+  const handleScroll = useCallback(() => {
+    setIsUserScrolling(!isAtBottom());
+  }, [isAtBottom]);
+
+  // 메시지가 추가될 때 자동 스크롤 (사용자가 스크롤 중이 아닐 때만)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+    if (!isUserScrolling) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isLoading, isUserScrolling]);
 
   const handleStart = async () => {
     setIsLoading(true);
@@ -44,9 +62,13 @@ export default function ConsultClient() {
 
     const userMessage = input.trim();
     setInput('');
+    setIsUserScrolling(false); // 메시지 전송 시 자동 스크롤 활성화
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
     setError('');
+
+    // 포커스 유지
+    setTimeout(() => inputRef.current?.focus(), 0);
 
     try {
       const response = await sendConsultMessage(sessionId, userMessage);
@@ -114,13 +136,17 @@ export default function ConsultClient() {
     <div className="max-w-2xl mx-auto">
       <div className="bg-white rounded-3xl shadow-sm overflow-hidden">
         {/* 헤더 */}
-        <div className="bg-gradient-to-r from-pink-400 to-purple-400 text-white p-4">
+        <div className="bg-gradient-to-r from-pink-400 to-purple-400 text-white p-4 shrink-0">
           <h1 className="font-bold">MBTI 상담</h1>
           <p className="text-sm text-white/80">남은 턴: {remainingTurns}/5</p>
         </div>
 
         {/* 메시지 영역 */}
-        <div className="h-96 overflow-y-auto p-4 space-y-4">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="h-96 overflow-y-auto p-4 space-y-4"
+        >
           {messages.map((msg, idx) => (
             <div
               key={idx}
@@ -191,6 +217,7 @@ export default function ConsultClient() {
         <div className="border-t p-4">
           <div className="flex gap-2">
             <input
+              ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}

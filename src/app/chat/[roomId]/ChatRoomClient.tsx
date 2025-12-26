@@ -29,11 +29,29 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
 
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
 
-  // 자동 스크롤
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // 스크롤이 바닥에 있는지 체크
+  const isAtBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    const threshold = 100;
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
   }, []);
+
+  // 스크롤 이벤트 핸들러
+  const handleScrollEvent = useCallback(() => {
+    setIsUserScrolling(!isAtBottom());
+  }, [isAtBottom]);
+
+  // 자동 스크롤 (사용자가 스크롤 중이 아닐 때만)
+  const scrollToBottom = useCallback(() => {
+    if (!isUserScrolling) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [isUserScrolling]);
 
   useEffect(() => {
     scrollToBottom();
@@ -129,6 +147,10 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
 
     wsRef.current.send(JSON.stringify(message));
     setInput('');
+    setIsUserScrolling(false); // 메시지 전송 시 자동 스크롤 활성화
+
+    // 포커스 유지
+    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -180,7 +202,11 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
         </div>
 
         {/* 메시지 영역 */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScrollEvent}
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+        >
           {error && (
             <div className="bg-red-100 text-red-600 p-3 rounded-lg text-center text-sm">
               {error}
@@ -227,6 +253,7 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
         <div className="px-4 py-3 border-t border-gray-100">
           <div className="flex gap-2">
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
