@@ -44,10 +44,17 @@ export default function MbtiTestClient() {
 
   // 메시지가 추가될 때 자동 스크롤 (사용자가 스크롤 중이 아닐 때만)
   useEffect(() => {
-    if (!isUserScrolling) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!isUserScrolling && messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [messages, isLoading, isUserScrolling]);
+
+  // 로딩이 끝나면 input에 포커스 유지
+  useEffect(() => {
+    if (!isLoading && !isCompleted && isStarted) {
+      inputRef.current?.focus();
+    }
+  }, [isLoading, isCompleted, isStarted]);
 
 
   useEffect(() => {
@@ -95,9 +102,6 @@ export default function MbtiTestClient() {
     setMessages(prev => [...prev, { role: 'user', content: userAnswer }]);
     setIsLoading(true);
     setError('');
-
-    // 포커스 유지
-    setTimeout(() => inputRef.current?.focus(), 0);
 
     try {
       // 통합 답변 엔드포인트 호출

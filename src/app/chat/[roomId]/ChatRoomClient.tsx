@@ -48,8 +48,8 @@ export default function ChatRoomClient({ roomId }: ChatRoomClientProps) {
 
   // 자동 스크롤 (사용자가 스크롤 중이 아닐 때만)
   const scrollToBottom = useCallback(() => {
-    if (!isUserScrolling) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!isUserScrolling && messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   }, [isUserScrolling]);
 
