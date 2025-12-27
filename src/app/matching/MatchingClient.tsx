@@ -59,6 +59,13 @@ export default function MatchingClient() {
       console.error('매칭 요청 실패:', err);
       setError('매칭 요청에 실패했습니다. 다시 시도해주세요.');
       setStatus('error');
+
+      // 에러 발생 시 대기열에 등록되었을 수 있으므로 정리
+      try {
+        await cancelMatch({ user_id: user.id, mbti: profile.mbti });
+      } catch {
+        // 취소 실패는 무시 (애초에 대기열에 없었을 수도 있음)
+      }
     } finally {
       setIsLoading(false);
     }
