@@ -182,14 +182,6 @@ export default function ChatListClient() {
           return;
         }
 
-        // 이미 채팅 중 - 바로 채팅방으로 이동
-        if (response.status === 'already_chatting') {
-          if (response.roomId) {
-            router.push(`/chat/${response.roomId}`);
-          }
-          return;
-        }
-
         // 다음 레벨로 순환 (1 -> 2 -> 3 -> 4 -> 1 -> ...)
         levelIndex = (levelIndex + 1) % MATCHING_LEVELS.length;
 

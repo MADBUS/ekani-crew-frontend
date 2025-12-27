@@ -346,7 +346,7 @@ export interface MatchPartner {
 }
 
 export interface MatchRequestResponse {
-  status: 'waiting' | 'already_waiting' | 'matched' | 'already_matched' | 'already_chatting';
+  status: 'waiting' | 'already_waiting' | 'matched' | 'already_matched';
   message: string;
   my_mbti: string;
   wait_count?: number;

@@ -49,11 +49,6 @@ export default function MatchingClient() {
         setStatus('matched');
         setMatchedMbti(response.partner?.mbti || '???');
         setMatchedRoomId(response.roomId || null);
-      } else if (response.status === 'already_chatting') {
-        // 이미 채팅 중 - 바로 채팅방으로 이동
-        if (response.roomId) {
-          router.push(`/chat/${response.roomId}`);
-        }
       } else {
         // waiting 또는 already_waiting
         setStatus('waiting');
