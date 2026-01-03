@@ -136,6 +136,12 @@ export default function PostsClient() {
                     <p className="text-sm text-gray-500 line-clamp-2 mt-1">{post.content}</p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
                       <span>{formatRelativeTime(post.created_at)}</span>
+                      {post.comment_count !== undefined && post.comment_count > 0 && (
+                        <span className="flex items-center gap-0.5">
+                          <span>💬</span>
+                          <span>{post.comment_count}</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

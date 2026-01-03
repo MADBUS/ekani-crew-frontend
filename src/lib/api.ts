@@ -544,6 +544,7 @@ export interface Post {
   post_type: PostType;
   topic_id: string | null;
   created_at: string;
+  comment_count?: number;
 }
 
 /**
