@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import ConfirmModal from '@/components/ConfirmModal';
 
 export default function Header() {
   const { isLoggedIn, user, logout, loading } = useAuth();
   const [showLogout, setShowLogout] = useState(false);
+  const [showCommunityMenu, setShowCommunityMenu] = useState(false);
+  const communityMenuRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
     setShowLogout(true);
@@ -18,45 +20,82 @@ export default function Header() {
     setShowLogout(false);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (communityMenuRef.current && !communityMenuRef.current.contains(event.target as Node)) {
+        setShowCommunityMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <>
-    <header className="bg-white/70 backdrop-blur-sm shadow-sm sticky top-0 z-50">
+    <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-pink-500">
+          <Link href="/" className="text-xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
             눈치코치
           </Link>
-          <nav className="flex items-center gap-2">
-            <Link
-              href="/convert"
-              className="px-4 py-2 rounded-full bg-purple-100 text-purple-600 hover:bg-purple-200 text-sm font-medium transition"
-            >
-              메시지변환
-            </Link>
+          <nav className="flex items-center gap-1">
             <Link
               href="/mbti-test"
-              className="px-4 py-2 rounded-full bg-indigo-100 text-indigo-600 hover:bg-indigo-200 text-sm font-medium transition"
+              className="px-3 py-1.5 text-gray-600 hover:text-indigo-600 text-sm font-medium transition"
             >
               MBTI검사
             </Link>
             <Link
+              href="/convert"
+              className="px-3 py-1.5 text-gray-600 hover:text-purple-600 text-sm font-medium transition"
+            >
+              변환
+            </Link>
+            <Link
+              href="/matching"
+              className="px-3 py-1.5 text-gray-600 hover:text-rose-600 text-sm font-medium transition"
+            >
+              매칭
+            </Link>
+
+            {/* 커뮤니티 드롭다운 */}
+            <div className="relative" ref={communityMenuRef}>
+              <button
+                onClick={() => setShowCommunityMenu(!showCommunityMenu)}
+                className="px-3 py-1.5 text-gray-600 hover:text-pink-600 text-sm font-medium transition flex items-center gap-0.5"
+              >
+                커뮤니티
+                <span className="text-[10px]">▾</span>
+              </button>
+              {showCommunityMenu && (
+                <div className="absolute right-0 mt-2 w-36 bg-white rounded-xl shadow-lg border border-gray-100 py-1 overflow-hidden">
+                  <Link
+                    href="/community/posts"
+                    onClick={() => setShowCommunityMenu(false)}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition"
+                  >
+                    게시판
+                  </Link>
+                  <Link
+                    href="/community/balance"
+                    onClick={() => setShowCommunityMenu(false)}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-600 transition"
+                  >
+                    밸런스게임
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            <Link
               href="/chat"
-              className="px-4 py-2 rounded-full bg-rose-100 text-rose-600 hover:bg-rose-200 text-sm font-medium transition"
+              className="px-3 py-1.5 text-gray-600 hover:text-rose-600 text-sm font-medium transition"
             >
               채팅
             </Link>
-            <Link
-              href="/community/balance"
-              className="px-4 py-2 rounded-full bg-amber-100 text-amber-600 hover:bg-amber-200 text-sm font-medium transition"
-            >
-              밸런스게임
-            </Link>
-            <Link
-              href="/community/posts"
-              className="px-4 py-2 rounded-full bg-teal-100 text-teal-600 hover:bg-teal-200 text-sm font-medium transition"
-            >
-              게시판
-            </Link>
+
+            <div className="w-px h-5 bg-gray-200 mx-2"></div>
+
             {loading ? (
               <div className="px-4 py-2 text-sm text-gray-400">로딩중...</div>
             ) : isLoggedIn ? (
