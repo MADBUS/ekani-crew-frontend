@@ -347,11 +347,14 @@ export interface ChatMessageDto {
 /**
  * 채팅방 미리보기 응답
  */
+export type ChatRoomStatus = 'active' | 'left_by_user1' | 'left_by_user2' | 'closed' | 'blocked';
+
 export interface ChatRoomPreview {
   id: string;
   user1_id: string;
   user2_id: string;
   created_at: string;
+  status: ChatRoomStatus;
   latest_message: ChatMessageDto | null;
   unread_count: number;
 }
